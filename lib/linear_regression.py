@@ -16,8 +16,11 @@ class LinearRegression:
 
     Attributes
     ----------
+    METHOD_MAP : dict(str, function)
+        Dictionary mapping accepted method strings to method functions
     theta : array size (num_features, 1)
         Array of calculated weights that define the model's fit
+    
 
     """
 
@@ -44,7 +47,12 @@ class LinearRegression:
 
 
     def normal(self, X, Y):
-        pass
+        """
+        Calculates weights with Normal Equation: Theta = (X_T * X)^-1 * X_T * Y
+        No iterations
+        Default method for this model
+        """
+        self.theta = np.matmul(np.matmul(np.linalg.inv(np.matmul(X.T, X)), X.T), Y)
 
     def fit(self, X, Y):
         """
@@ -59,7 +67,9 @@ class LinearRegression:
             Target values
 
         """
-        pass
+        X = self.preprocess(X)
+        self.METHOD_MAP[self.method](X, Y)
+
 
     def predict(self, X):
         """
@@ -72,4 +82,9 @@ class LinearRegression:
             Data to predict values for 
 
         """
-        pass
+        return np.dot(X, self.theta)
+
+    # Attribute Definitions
+    METHOD_MAP = {
+        "normal": normal
+    }

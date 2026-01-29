@@ -26,6 +26,23 @@ class LinearRegression:
 
     def __init__(self, method = "normal"):
         self.method = method
+        self.theta = None
+
+    def __str__(self):
+        """
+        String function returns textual summary of model
+        """
+        s_overview = f"Linear Regression Model ({self.method.capitalize()})\nHyperparameters:\n"
+
+        s_theta = f"Theta:\n"
+        if self.theta is None:
+            s_theta += "    Model unfitted"
+        else:
+            for i in range(len(self.theta)):
+                s_theta += "    theta_{}: {:.2f}\n".format(i, self.theta[i][0])
+
+        return s_overview + s_theta
+
 
     def preprocess(self, X):
         """
@@ -68,7 +85,7 @@ class LinearRegression:
 
         """
         X = self.preprocess(X)
-        self.METHOD_MAP[self.method](X, Y)
+        self.METHOD_MAP[self.method](self, X, Y)
 
 
     def predict(self, X):
@@ -80,8 +97,14 @@ class LinearRegression:
         ----------
         X : numpy array (num_samples, num_features)
             Data to predict values for 
+        
+        returns
+        --------
+        Y_hat : array (num_samples, 1)
+            Predictions
 
         """
+        X = self.preprocess(X)
         return np.dot(X, self.theta)
 
     # Attribute Definitions

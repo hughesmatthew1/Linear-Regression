@@ -18,11 +18,11 @@ class LinearRegression:
             "sgd" - Stochastic Gradient Descent
             "mbgd" - Mini-Batch Gradient Descent
 
-    alpha : float, default = 0.2
+    alpha : float, default = 0.05
         Learning rate
         Determines size of each step in gradient descent   
     
-    epochs: int, default = 100
+    epochs: int, default = 300
         Specieifes the number of epochs in training for iterative methods
         I.e. how many rounds of gradient descent
         Ignored for "normal" method
@@ -33,17 +33,25 @@ class LinearRegression:
         Dictionary mapping accepted method strings to method functions
     theta : array size (num_features, 1)
         Array of calculated weights that define the model's fit
+    num_features : int
+        Stores the number of features the model is fitted to (includes preprocessed bias term) 
+        Generally denoted as n
+    num_examples : int
+        Stores the number of examples the model is fitted on 
+        Generally denoted as m
     
 
     """
 
-    def __init__(self, method = "normal", alpha = 0.2, epochs = 100):
+    def __init__(self, method = "normal", alpha = 0.05, epochs = 300):
         self.method = method
 
         self.alpha = alpha
         self.epochs = epochs
 
         self.theta = None
+        self.num_features = None
+        self.num_examples =None
 
     def __str__(self):
         """
@@ -76,7 +84,9 @@ class LinearRegression:
         Preprocessed data : array (num_samples, num_features + 1)
             Training data with leading bias term initialized to 1
         """
-
+        
+        if X.shape[1] == self.num_features:
+            return X
         return np.concatenate((np.ones((X.shape[0], 1)), X), axis=1)
 
 ## TODO
@@ -98,7 +108,7 @@ class LinearRegression:
             MSE = 1/n * sum (y_hat-y)^2
         """
 
-        return (1/Y.shape[0]) * np.sum(np.square(self.predict(X) - Y))
+        return (1 / self.num_examples) * np.sum(np.square(self.predict(X) - Y))
 
 
 ## TODO
@@ -119,8 +129,8 @@ class LinearRegression:
             Array with each feature's gradient wrt theta
 
         """
-        
-        return np.dot(X.T, self.predict(X)-Y)
+    
+        return (2 / self.num_examples) * np.dot(X.T, (self.predict(X) - Y))
 
 
     def normal(self, X, Y):
@@ -136,6 +146,7 @@ class LinearRegression:
         Y : numpy array (num_samples, 1)
             Target values
         """
+        
         self.theta = np.matmul(np.matmul(np.linalg.inv(np.matmul(X.T, X)), X.T), Y)
 
 ## TODO
@@ -154,12 +165,17 @@ class LinearRegression:
         """
 
         # Randomize theta
-        self.theta = np.random.randn(X.shape[1], 1)
+        self.theta = np.random.randn(self.num_features, 1)
 
         for t in range(self.epochs):
-            # Apply gradient descent
-            pass
-        pass
+            # Calculate cost
+            cost = self.cost(X, Y)
+
+            # Calculate Gradient
+            gradient = self.gradient(X, Y)
+
+            # Apply Gradient Descent 
+            self.theta-= (self.alpha) * (gradient)
 
 
     def fit(self, X, Y):
@@ -175,6 +191,10 @@ class LinearRegression:
             Target values
 
         """
+        # Reconfigure model information
+        self.num_features = X.shape[1] + 1
+        self.num_examples = X.shape[0]
+
         X = self.preprocess(X)
         self.METHOD_MAP[self.method](self, X, Y)
 
@@ -196,9 +216,12 @@ class LinearRegression:
 
         """
         X = self.preprocess(X)
+
         return np.dot(X, self.theta)
 
     # Attribute Definitions
     METHOD_MAP = {
-        "normal": normal
+        "normal": normal,
+        "bgd" : bgd
     }
+

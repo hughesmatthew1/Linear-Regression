@@ -24,9 +24,14 @@ class LinearRegression:
         ALPHA = initial learning rate
         alpha_t = learning rate at epoch t
 
-    decay : float, default = 0.001
+    decay : float, default = 0
         Learning rate decay
         Determines the rate at which learning rate slows
+        By default, do not use learning decay
+
+    mb_prop : float, default = 0.2
+        Specifies the proportion of examples to be used in each batch of mbgd
+        Default = 0.2 => 20% of examples per batch
     
     epochs: int, default = 300
         Specieifes the number of epochs in training for iterative methods
@@ -51,15 +56,17 @@ class LinearRegression:
 
     """
 
-    def __init__(self, method = "normal", alpha = 0.05, decay = 0.001, epochs = 300):
+    def __init__(self, method = "normal", alpha = 0.05, decay = 0.001, mb_prop = .1, epochs = 300):
         self.method = method
 
         # Hyperparameters
         self.ALPHA = alpha
         self.alpha_t = alpha
         self.decay = decay
+        self.mb_prop = mb_prop
         self.epochs = epochs
 
+        # Initialization
         self.theta = None
         self.t = 0
         self.num_features = None
@@ -87,12 +94,14 @@ class LinearRegression:
         Inverse time decay learning rate schedule.
         alpha_t = alpha / (1 + decay * t)
         Sets alpha_t to the appropriate learning rate
+        With default decay, alpha_t remains constant
 
         Args
         ----
         t : int
             Current epoch
         """
+
         self.alpha_t = self.ALPHA / (1 + self.decay * self.t)
 
 
@@ -193,7 +202,7 @@ class LinearRegression:
         # Randomize theta
         self.theta = np.random.randn(self.num_features, 1)
 
-        for t in range(self.epochs):
+        for epoch in range(self.epochs):
             # Calculate cost
             cost = self.cost(X, Y)
 
@@ -201,10 +210,87 @@ class LinearRegression:
             gradient = self.gradient(X, Y)
 
             # Apply Gradient Descent 
-            self.theta-= (self.alpha_t) * (gradient)
+            self.theta -= (self.alpha_t) * (gradient)
 
             # Adjust Learning Rate
+            self.t += 1
             self.inverse_time_decay()
+
+
+    def sgd(self, X, Y):
+        """
+        Calculates theta with Batch Gradient Descent
+        Iterative gradient descent on one example per epoch
+        method = "bgd"
+
+        Args
+        --------
+        X : numpy array (num_samples, num_features)
+            Training data
+        Y : numpy array (num_samples, 1)
+            Target values
+        """
+        
+        # Randomize theta
+        self.theta = np.random.randn(self.num_features, 1)
+
+        for epoch in range(self.epochs):
+            # Each epoch randomly order the training data
+            ordering = np.random.permutation(self.num_examples)
+            for i in range(self.num_examples):
+                # Calculate cost on given example
+                cost = self.cost(X[i:i+1], Y[i:i+1])
+
+                # Calculate Gradient on given example
+                gradient = self.gradient(X[i:i+1], Y[i:i+1])
+
+                # Apply Gradient Descent 
+                self.theta -= (self.alpha_t) * (gradient)
+
+                # Adjust Learning Rate
+                self.t += 1
+                self.inverse_time_decay()
+
+# TODO 
+    def mbgd(self, X, Y):
+        """
+        Calculates theta with Batch Gradient Descent
+        Iterative gradient descent on a batch of examples per epoch
+        method = "bgd"
+
+        Args
+        --------
+        X : numpy array (num_samples, num_features)
+            Training data
+        Y : numpy array (num_samples, 1)
+            Target values
+        """
+
+        print(self.num_examples)
+        print(self.mb_prop)
+        print(self.num_examples*self.mb_prop)
+
+        batch_size = int(np.round(self.num_examples * self.mb_prop))
+
+        # Randomize theta
+        self.theta = np.random.randn(self.num_features, 1)
+
+        for epoch in range(self.epochs):
+            # Each epoch randomly order the training data
+            ordering = np.random.permutation(self.num_examples)
+            for i in range(0, self.num_examples, batch_size):
+                # Calculate cost on given example
+                cost = self.cost(X[i:i+batch_size], Y[i:i+batch_size])
+
+                # Calculate Gradient on given example
+                gradient = self.gradient(X[i:i+batch_size], Y[i:i+batch_size])
+
+                # Apply Gradient Descent 
+                self.theta -= (self.alpha_t) * (gradient)
+
+                # Adjust Learning Rate
+                self.t += 1
+                self.inverse_time_decay()
 
 
     def fit(self, X, Y):
@@ -251,6 +337,8 @@ class LinearRegression:
     # Attribute Definitions
     METHOD_MAP = {
         "normal": normal,
-        "bgd" : bgd
+        "bgd" : bgd,
+        "sgd" : sgd,
+        "mbgd": mbgd
     }
 

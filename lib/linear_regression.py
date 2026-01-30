@@ -22,6 +22,10 @@ class LinearRegression:
         Learning rate
         Determines size of each step in gradient descent   
     
+    epochs: int, default = 100
+        Specieifes the number of epochs in training for iterative methods
+        I.e. how many rounds of gradient descent
+        Ignored for "normal" method
 
     Attributes
     ----------
@@ -33,8 +37,12 @@ class LinearRegression:
 
     """
 
-    def __init__(self, method = "normal"):
+    def __init__(self, method = "normal", alpha = 0.2, epochs = 100):
         self.method = method
+
+        self.alpha = alpha
+        self.epochs = epochs
+
         self.theta = None
 
     def __str__(self):
@@ -71,14 +79,80 @@ class LinearRegression:
 
         return np.concatenate((np.ones((X.shape[0], 1)), X), axis=1)
 
+## TODO
+    def cost(self, X, Y):
+        """
+        Calculates cost of model on dataset (MSE)
+
+        Args
+        --------
+        X : numpy array (num_samples, num_features)
+            Training data
+        Y : numpy array (num_samples, 1)
+            Target values
+        
+        Returns
+        --------
+        Cost : float
+            MSE of model (current theta) on training data
+        """
+
+        pass
+
+
+## TODO
+    def gradient(self, X, Y):
+        """
+        Calculates gradient of cost function wrt theta
+
+        Args
+        --------
+        X : numpy array (num_samples, num_features)
+            Training data
+        Y : numpy array (num_samples, 1)
+            Target values
+        
+        Returns
+        --------
+        gradient : numpy array (num_features)
+
+        """
+        
+        
+        pass
+
 
     def normal(self, X, Y):
         """
-        Calculates weights with Normal Equation: Theta = (X_T * X)^-1 * X_T * Y
+        Calculates theta with Normal Equation: Theta = (X_T * X)^-1 * X_T * Y
         No iterations
         Default method for this model
+
+        Args
+        --------
+        X : numpy array (num_samples, num_features)
+            Training data
+        Y : numpy array (num_samples, 1)
+            Target values
         """
         self.theta = np.matmul(np.matmul(np.linalg.inv(np.matmul(X.T, X)), X.T), Y)
+
+## TODO
+    def bgd(self, X, Y):
+        """
+        Calculates theta with Batch Gradient Descent
+        Iterative gradient descent on full dataset
+        method = "bgd"
+
+        Args
+        --------
+        X : numpy array (num_samples, num_features)
+            Training data
+        Y : numpy array (num_samples, 1)
+            Target values
+        """
+        pass
+
 
     def fit(self, X, Y):
         """

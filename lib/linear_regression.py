@@ -71,7 +71,7 @@ class LinearRegression:
         X : array (num_samples, num_features)
             Training Data
 
-        returns
+        Returns
         --------
         Preprocessed data : array (num_samples, num_features + 1)
             Training data with leading bias term initialized to 1
@@ -95,9 +95,10 @@ class LinearRegression:
         --------
         Cost : float
             MSE of model (current theta) on training data
+            MSE = 1/n * sum (y_hat-y)^2
         """
 
-        pass
+        return (1/Y.shape[0]) * np.sum(np.square(self.predict(X) - Y))
 
 
 ## TODO
@@ -114,12 +115,12 @@ class LinearRegression:
         
         Returns
         --------
-        gradient : numpy array (num_features)
+        gradient : numpy array (num_features, 1)
+            Array with each feature's gradient wrt theta
 
         """
         
-        
-        pass
+        return np.dot(X.T, self.predict(X)-Y)
 
 
     def normal(self, X, Y):
@@ -151,6 +152,13 @@ class LinearRegression:
         Y : numpy array (num_samples, 1)
             Target values
         """
+
+        # Randomize theta
+        self.theta = np.random.randn(X.shape[1], 1)
+
+        for t in range(self.epochs):
+            # Apply gradient descent
+            pass
         pass
 
 
@@ -181,7 +189,7 @@ class LinearRegression:
         X : numpy array (num_samples, num_features)
             Data to predict values for 
         
-        returns
+        Returns
         --------
         Y_hat : array (num_samples, 1)
             Predictions

@@ -10,9 +10,18 @@ class LinearRegression:
     Parameters
     ----------
 
-    method : string, default "normal"
+    method : string, default = "normal"
         Specifies the solver method for the model
-        Only "normal has been implemented thus far
+        Options:
+            "normal" - Normal Equation
+            "bgd" - Batch Gradient Descent
+            "sgd" - Stochastic Gradient Descent
+            "mbgd" - Mini-Batch Gradient Descent
+
+    alpha : float, default = 0.2
+        Learning rate
+        Determines size of each step in gradient descent   
+    
 
     Attributes
     ----------

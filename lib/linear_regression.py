@@ -20,7 +20,13 @@ class LinearRegression:
 
     alpha : float, default = 0.05
         Learning rate
-        Determines size of each step in gradient descent   
+        Determines size of each step in gradient descent 
+        ALPHA = initial learning rate
+        alpha_t = learning rate at epoch t
+
+    decay : float, default = 0.001
+        Learning rate decay
+        Determines the rate at which learning rate slows
     
     epochs: int, default = 300
         Specieifes the number of epochs in training for iterative methods
@@ -39,19 +45,26 @@ class LinearRegression:
     num_examples : int
         Stores the number of examples the model is fitted on 
         Generally denoted as m
+    t : int
+        Completed number of epochs
     
 
     """
 
-    def __init__(self, method = "normal", alpha = 0.05, epochs = 300):
+    def __init__(self, method = "normal", alpha = 0.05, decay = 0.001, epochs = 300):
         self.method = method
 
-        self.alpha = alpha
+        # Hyperparameters
+        self.ALPHA = alpha
+        self.alpha_t = alpha
+        self.decay = decay
         self.epochs = epochs
 
         self.theta = None
+        self.t = 0
         self.num_features = None
-        self.num_examples =None
+        self.num_examples = None
+
 
     def __str__(self):
         """
@@ -67,6 +80,20 @@ class LinearRegression:
                 s_theta += "    theta_{}: {:.2f}\n".format(i, self.theta[i][0])
 
         return s_overview + s_theta
+
+
+    def inverse_time_decay(self):
+        """
+        Inverse time decay learning rate schedule.
+        alpha_t = alpha / (1 + decay * t)
+        Sets alpha_t to the appropriate learning rate
+
+        Args
+        ----
+        t : int
+            Current epoch
+        """
+        self.alpha_t = self.ALPHA / (1 + self.decay * self.t)
 
 
     def preprocess(self, X):
@@ -89,7 +116,7 @@ class LinearRegression:
             return X
         return np.concatenate((np.ones((X.shape[0], 1)), X), axis=1)
 
-## TODO
+
     def cost(self, X, Y):
         """
         Calculates cost of model on dataset (MSE)
@@ -111,7 +138,6 @@ class LinearRegression:
         return (1 / self.num_examples) * np.sum(np.square(self.predict(X) - Y))
 
 
-## TODO
     def gradient(self, X, Y):
         """
         Calculates gradient of cost function wrt theta
@@ -149,7 +175,7 @@ class LinearRegression:
         
         self.theta = np.matmul(np.matmul(np.linalg.inv(np.matmul(X.T, X)), X.T), Y)
 
-## TODO
+
     def bgd(self, X, Y):
         """
         Calculates theta with Batch Gradient Descent
@@ -175,7 +201,10 @@ class LinearRegression:
             gradient = self.gradient(X, Y)
 
             # Apply Gradient Descent 
-            self.theta-= (self.alpha) * (gradient)
+            self.theta-= (self.alpha_t) * (gradient)
+
+            # Adjust Learning Rate
+            self.inverse_time_decay()
 
 
     def fit(self, X, Y):

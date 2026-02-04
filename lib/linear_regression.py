@@ -18,16 +18,24 @@ class LinearRegression:
             "sgd" - Stochastic Gradient Descent
             "mbgd" - Mini-Batch Gradient Descent
 
-    alpha : float, default = 0.05
+    eta : float, default = 0.05
         Learning rate
         Determines size of each step in gradient descent 
-        ALPHA = initial learning rate
-        alpha_t = learning rate at epoch t
+        ETA = initial learning rate
+        eta = learning rate at epoch t
 
-    decay : float, default = 0
+    decay : float, default = 0.0
         Learning rate decay
         Determines the rate at which learning rate slows
         By default, do not use learning decay
+
+    lmbda : float, default = 0.0
+        Regularization coefficient
+
+    alpha : float, default = 0.0
+        ElasticNet coefficient
+        0.0 = L1 (Lasso) Regularization
+        1.0 = L2 (Ridge) Regularization
 
     mb_prop : float, default = 0.2
         Specifies the proportion of examples to be used in each batch of mbgd
@@ -56,21 +64,23 @@ class LinearRegression:
 
     """
 
-    def __init__(self, method = "normal", alpha = 0.05, decay = 0.001, mb_prop = .1, epochs = 300):
+    def __init__(self, method = "normal", eta = 0.05, decay = 0.0, lmbda = 0.0, alpha = 0.0, mb_prop = 0.2, epochs = 300):
         self.method = method
 
         # Hyperparameters
-        self.ALPHA = alpha
-        self.alpha_t = alpha
-        self.decay = decay
-        self.mb_prop = mb_prop
-        self.epochs = epochs
+        self._ETA = eta
+        self._eta = eta
+        self._decay = decay
+        self._lambda = lmbda
+        self._alpha = alpha
+        self._mb_prop = mb_prop
+        self._epochs = epochs
 
         # Initialization
-        self.theta = None
-        self.t = 0
-        self.num_features = None
-        self.num_examples = None
+        self._theta = None
+        self._t = 0
+        self._num_features = None
+        self._num_examples = None
 
 
     def __str__(self):
@@ -80,11 +90,11 @@ class LinearRegression:
         s_overview = f"Linear Regression Model ({self.method.capitalize()})\nHyperparameters:\n"
 
         s_theta = f"Theta:\n"
-        if self.theta is None:
+        if self._theta is None:
             s_theta += "    Model unfitted"
         else:
-            for i in range(len(self.theta)):
-                s_theta += "    theta_{}: {:.2f}\n".format(i, self.theta[i][0])
+            for i in range(len(self._theta)):
+                s_theta += "    theta_{}: {:.2f}\n".format(i, self._theta[i][0])
 
         return s_overview + s_theta
 
@@ -92,9 +102,9 @@ class LinearRegression:
     def inverse_time_decay(self):
         """
         Inverse time decay learning rate schedule.
-        alpha_t = alpha / (1 + decay * t)
-        Sets alpha_t to the appropriate learning rate
-        With default decay, alpha_t remains constant
+        eta_t = eta / (1 + decay * t)
+        Sets eta_t to the appropriate learning rate
+        With default decay, eta_t remains constant
 
         Args
         ----
@@ -102,7 +112,7 @@ class LinearRegression:
             Current epoch
         """
 
-        self.alpha_t = self.ALPHA / (1 + self.decay * self.t)
+        self._eta = self._ETA / (1 + self._decay * self._t)
 
 
     def preprocess(self, X):
@@ -121,7 +131,7 @@ class LinearRegression:
             Training data with leading bias term initialized to 1
         """
         
-        if X.shape[1] == self.num_features:
+        if X.shape[1] == self._num_features:
             return X
         return np.concatenate((np.ones((X.shape[0], 1)), X), axis=1)
 
@@ -144,7 +154,7 @@ class LinearRegression:
             MSE = 1/n * sum (y_hat-y)^2
         """
 
-        return (1 / self.num_examples) * np.sum(np.square(self.predict(X) - Y))
+        return (1 / self._num_examples) * np.sum(np.square(self.predict(X) - Y))
 
 
     def gradient(self, X, Y):
@@ -165,7 +175,7 @@ class LinearRegression:
 
         """
     
-        return (2 / self.num_examples) * np.dot(X.T, (self.predict(X) - Y))
+        return (2 / self._num_examples) * np.dot(X.T, (self.predict(X) - Y))
 
 
     def normal(self, X, Y):
@@ -182,7 +192,7 @@ class LinearRegression:
             Target values
         """
         
-        self.theta = np.matmul(np.matmul(np.linalg.inv(np.matmul(X.T, X)), X.T), Y)
+        self._theta = np.matmul(np.matmul(np.linalg.inv(np.matmul(X.T, X)), X.T), Y)
 
 
     def bgd(self, X, Y):
@@ -200,9 +210,9 @@ class LinearRegression:
         """
 
         # Randomize theta
-        self.theta = np.random.randn(self.num_features, 1)
+        self._theta = np.random.randn(self._num_features, 1)
 
-        for epoch in range(self.epochs):
+        for epoch in range(self._epochs):
             # Calculate cost
             cost = self.cost(X, Y)
 
@@ -210,10 +220,10 @@ class LinearRegression:
             gradient = self.gradient(X, Y)
 
             # Apply Gradient Descent 
-            self.theta -= (self.alpha_t) * (gradient)
+            self._theta -= (self._eta) * (gradient)
 
             # Adjust Learning Rate
-            self.t += 1
+            self._t += 1
             self.inverse_time_decay()
 
 
@@ -232,12 +242,12 @@ class LinearRegression:
         """
         
         # Randomize theta
-        self.theta = np.random.randn(self.num_features, 1)
+        self._theta = np.random.randn(self._num_features, 1)
 
-        for epoch in range(self.epochs):
+        for epoch in range(self._epochs):
             # Each epoch randomly order the training data
-            ordering = np.random.permutation(self.num_examples)
-            for i in range(self.num_examples):
+            ordering = np.random.permutation(self._num_examples)
+            for i in ordering:
                 # Calculate cost on given example
                 cost = self.cost(X[i:i+1], Y[i:i+1])
 
@@ -245,13 +255,13 @@ class LinearRegression:
                 gradient = self.gradient(X[i:i+1], Y[i:i+1])
 
                 # Apply Gradient Descent 
-                self.theta -= (self.alpha_t) * (gradient)
+                self._theta -= (self._eta) * (gradient)
 
                 # Adjust Learning Rate
-                self.t += 1
+                self._t += 1
                 self.inverse_time_decay()
 
-# TODO 
+ 
     def mbgd(self, X, Y):
         """
         Calculates theta with Batch Gradient Descent
@@ -266,30 +276,27 @@ class LinearRegression:
             Target values
         """
 
-        print(self.num_examples)
-        print(self.mb_prop)
-        print(self.num_examples*self.mb_prop)
-
-        batch_size = int(np.round(self.num_examples * self.mb_prop))
+        batch_size = int(np.round(self._num_examples * self._mb_prop))
 
         # Randomize theta
-        self.theta = np.random.randn(self.num_features, 1)
+        self._theta = np.random.randn(self._num_features, 1)
 
-        for epoch in range(self.epochs):
+        for epoch in range(self._epochs):
             # Each epoch randomly order the training data
-            ordering = np.random.permutation(self.num_examples)
-            for i in range(0, self.num_examples, batch_size):
+            ordering = np.random.permutation(self._num_examples)
+            for i in range(0, self._num_examples, batch_size):
+                j = ordering[i]
                 # Calculate cost on given example
-                cost = self.cost(X[i:i+batch_size], Y[i:i+batch_size])
+                cost = self.cost(X[j:j+batch_size], Y[j:j+batch_size])
 
                 # Calculate Gradient on given example
-                gradient = self.gradient(X[i:i+batch_size], Y[i:i+batch_size])
+                gradient = self.gradient(X[j:j+batch_size], Y[j:j+batch_size])
 
                 # Apply Gradient Descent 
-                self.theta -= (self.alpha_t) * (gradient)
+                self._theta -= (self._eta) * (gradient)
 
                 # Adjust Learning Rate
-                self.t += 1
+                self._t += 1
                 self.inverse_time_decay()
 
 
@@ -307,8 +314,8 @@ class LinearRegression:
 
         """
         # Reconfigure model information
-        self.num_features = X.shape[1] + 1
-        self.num_examples = X.shape[0]
+        self._num_features = X.shape[1] + 1
+        self._num_examples = X.shape[0]
 
         X = self.preprocess(X)
         self.METHOD_MAP[self.method](self, X, Y)
@@ -332,7 +339,7 @@ class LinearRegression:
         """
         X = self.preprocess(X)
 
-        return np.dot(X, self.theta)
+        return np.dot(X, self._theta)
 
     # Attribute Definitions
     METHOD_MAP = {

@@ -50,22 +50,33 @@ class LinearRegression:
     ----------
     METHOD_MAP : dict(str, function)
         Dictionary mapping accepted method strings to method functions
+
     theta : array size (num_features, 1)
         Array of calculated weights that define the model's fit
+
     num_features : int
         Stores the number of features the model is fitted to (includes preprocessed bias term) 
         Generally denoted as n
+
     num_examples : int
         Stores the number of examples the model is fitted on 
         Generally denoted as m
+
+    X : array size (num_samples, num_features)
+        Stores the data the model was trained on
+
+    Y : array size (num_samples, 1)
+        Stores the targets the model was trained on 
+
     t : int
         Completed number of epochs
     
 
     """
 
+
     def __init__(self, method = "normal", eta = 0.05, decay = 0.0, lmbda = 0.0, alpha = 0.0, mb_prop = 0.2, epochs = 300):
-        self.method = method
+        self._method = method
 
         # Hyperparameters
         self._ETA = eta
@@ -77,6 +88,8 @@ class LinearRegression:
         self._epochs = epochs
 
         # Initialization
+        self._X = None
+        self._Y = None
         self._theta = None
         self._t = 0
         self._num_features = None
@@ -87,16 +100,44 @@ class LinearRegression:
         """
         String function returns textual summary of model
         """
-        s_overview = f"Linear Regression Model ({self.method.capitalize()})\nHyperparameters:\n"
+        s_overview = None
+        s_size = None
+        s_theta = None
+        s_LOBF = None
+        s_hp = None
 
-        s_theta = f"Theta:\n"
+        s_overview = f"Linear Regression Model ({self._method.capitalize()})\n"
+
+        
         if self._theta is None:
             s_theta += "    Model unfitted"
         else:
+            s_size = "Model trained on:\n"
+            s_size += "    Number of examples: {}\n".format(self._num_examples)
+            s_size += "    Number of features: {}\n".format(self._num_features)
+
+
+            s_theta = f"Theta:\n"
             for i in range(len(self._theta)):
                 s_theta += "    theta_{}: {:.2f}\n".format(i, self._theta[i][0])
 
-        return s_overview + s_theta
+            s_LOBF = "LOBF: y_hat = {:.2f}".format(self._theta[0][0])
+            for i in range(1, len(self._theta)):
+                s_LOBF += "+{:.2f}x_{}".format(self._theta[i][0], i)
+            s_LOBF += "\n"
+
+        if self._method != "normal":
+            s_hp = "Hyperparameters:\n"
+            s_hp += "   Epochs:        {:.2f}\n".format(self._epochs)
+            s_hp += "   Learning Rate: {:.2f}\n".format(self._eta)
+            s_hp += "   Decay Rate:    {:.2f}\n".format(self._decay)
+            s_hp += "   Regularization:{:.2f}\n".format(self._eta)
+            s_hp += "   L1 Ratio:      {:.2f}\n".format(self._eta)
+            s_hp += "   MB Proportion: {:.2f}\n".format(self._mb_prop) if self._method == "mbgd" else ""
+
+
+
+        return s_overview + s_size + s_theta + s_LOBF + s_hp
 
 
     def inverse_time_decay(self):
@@ -358,7 +399,11 @@ class LinearRegression:
         self._num_examples = X.shape[0]
 
         X = self.preprocess(X)
-        self.METHOD_MAP[self.method](self, X, Y)
+
+        self._X = X
+        self._Y = Y
+
+        self.METHOD_MAP[self._method](self, X, Y)
 
 
     def predict(self, X):

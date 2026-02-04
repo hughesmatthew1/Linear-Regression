@@ -32,10 +32,10 @@ class LinearRegression:
     lmbda : float, default = 0.0
         Regularization coefficient
 
-    alpha : float, default = 0.0
+    alpha : float, default = 1.0
         ElasticNet coefficient
-        0.0 = L1 (Lasso) Regularization
-        1.0 = L2 (Ridge) Regularization
+        1.0 = L1 (Lasso) Regularization
+        0.0 = L2 (Ridge) Regularization
 
     mb_prop : float, default = 0.2
         Specifies the proportion of examples to be used in each batch of mbgd
@@ -178,6 +178,37 @@ class LinearRegression:
         return (2 / self._num_examples) * np.dot(X.T, (self.predict(X) - Y))
 
 
+    def regularization(self):
+        """
+        Calculates regularization value using elastic net regularization
+        
+        Returns
+        --------
+        regularization value : numpy array (num_features, 1)
+            Array with each feature's regularization value wrt theta
+        """
+
+        l1_reg = (self._alpha) * np.sign(self._theta) # lasso
+        l2_reg = (1 - self._alpha) * self._theta # ridge
+
+        return l1_reg + l2_reg
+
+
+    def descent(self, gradient, regularization):
+        """
+        Apply descent (update parameters)
+        
+        Args
+        --------
+        gradient : numpy array (num_features, 1)
+            gradient vector wrt theta
+        regularization : numpy array (num_features, 1)
+            regularization vector wrt theta
+        """
+
+        self._theta -= self._eta * (gradient + self._lambda * regularization)
+
+
     def normal(self, X, Y):
         """
         Calculates theta with Normal Equation: Theta = (X_T * X)^-1 * X_T * Y
@@ -219,8 +250,11 @@ class LinearRegression:
             # Calculate Gradient
             gradient = self.gradient(X, Y)
 
+            # Calculate Regularization
+            regularization = self.regularization()
+
             # Apply Gradient Descent 
-            self._theta -= (self._eta) * (gradient)
+            self.descent(gradient, regularization)
 
             # Adjust Learning Rate
             self._t += 1
@@ -254,8 +288,11 @@ class LinearRegression:
                 # Calculate Gradient on given example
                 gradient = self.gradient(X[i:i+1], Y[i:i+1])
 
+                # Calculate Regularization
+                regularization = self.regularization()
+
                 # Apply Gradient Descent 
-                self._theta -= (self._eta) * (gradient)
+                self.descent(gradient, regularization)
 
                 # Adjust Learning Rate
                 self._t += 1
@@ -291,9 +328,12 @@ class LinearRegression:
 
                 # Calculate Gradient on given example
                 gradient = self.gradient(X[j:j+batch_size], Y[j:j+batch_size])
+                
+                # Calculate Regularization
+                regularization = self.regularization()
 
                 # Apply Gradient Descent 
-                self._theta -= (self._eta) * (gradient)
+                self.descent(gradient, regularization)
 
                 # Adjust Learning Rate
                 self._t += 1
